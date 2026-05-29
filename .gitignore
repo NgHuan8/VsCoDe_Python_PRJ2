@@ -1,0 +1,13 @@
+# Bỏ qua 2 thư mục chứa ảnh (Dataset)
+PRJ2/data/
+Train_Landmark/data/
+
+# Bỏ qua các file rác của Python (Bắt buộc)
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+
+# Bỏ qua file model AI (NẾU 2 file .keras của bạn nặng trên 50MB)
+# Nếu chúng nhẹ dưới 50MB và bạn muốn push lên thì xóa 2 dòng dưới đi
+*.keras
+*.h5
