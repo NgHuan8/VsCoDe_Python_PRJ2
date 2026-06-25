@@ -20,6 +20,21 @@ def calculate_mar(mouth_pts):
     h = np.linalg.norm(mouth_pts[0] - mouth_pts[4])
     return (v1 + v2 + v3) / (2.0 * h)
 
+def calculate_ear(eye_pts):
+    """Eye Aspect Ratio từ 6 điểm landmark (Soukupová & Čech, 2016).
+    Thứ tự điểm: [ngoài, trên-trong, trên-ngoài, trong, dưới-trong, dưới-ngoài]
+    theo chiều MediaPipe LEFT_EYE_INDICES / RIGHT_EYE_INDICES.
+    Trả về float; gần 0 = mắt đóng, ~0.3 = mắt mở bình thường.
+    """
+    pts = [np.array(p) for p in eye_pts]
+    A = np.linalg.norm(pts[1] - pts[5])
+    B = np.linalg.norm(pts[2] - pts[4])
+    C = np.linalg.norm(pts[0] - pts[3])
+    if C < 1e-6:
+        return 0.0
+    return (A + B) / (2.0 * C)
+
+
 def crop_eye(frame, eye_pts, padding=10, target_size=(48, 48)):
     """Cắt vùng mắt và resize về target_size.
 
