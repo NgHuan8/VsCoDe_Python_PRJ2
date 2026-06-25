@@ -21,24 +21,32 @@ def calculate_mar(mouth_pts):
     return (v1 + v2 + v3) / (2.0 * h)
 
 def crop_eye(frame, eye_pts, padding=10, target_size=(48, 48)):
-    """Cắt vùng mắt, chuyển sang ảnh xám và resize"""
+    """Cắt vùng mắt và resize về target_size.
+
+    Hỗ trợ cả ảnh màu (BGR) lẫn ảnh xám:
+      - Nếu truyền vào frame MÀU  -> tự đổi sang xám (hành vi cũ).
+      - Nếu truyền vào frame ĐÃ XÁM (main.py mới) -> giữ nguyên, không đổi lại
+        (tránh lỗi 'invalid number of channels' khi gọi BGR2GRAY lên ảnh 1 kênh).
+    Kết quả luôn là ảnh xám kích thước target_size.
+    """
     h_img, w_img = frame.shape[:2]
-    
+
     eye_pts = np.array(eye_pts)
     x_min, y_min = np.min(eye_pts, axis=0)
     x_max, y_max = np.max(eye_pts, axis=0)
-    
+
     x1 = max(0, x_min - padding)
     y1 = max(0, y_min - padding)
     x2 = min(w_img, x_max + padding)
     y2 = min(h_img, y_max + padding)
-    
+
     eye_crop = frame[y1:y2, x1:x2]
     if eye_crop.size == 0:
         return None
-        
-    # Chuyển đổi màu chuẩn: BGR gốc sang Grayscale
-    gray_eye = cv2.cvtColor(eye_crop, cv2.COLOR_BGR2GRAY)
-    resized_eye = cv2.resize(gray_eye, target_size)
-    
+
+    # Chỉ đổi sang xám khi đầu vào còn là ảnh màu (3 kênh).
+    if eye_crop.ndim == 3:
+        eye_crop = cv2.cvtColor(eye_crop, cv2.COLOR_BGR2GRAY)
+
+    resized_eye = cv2.resize(eye_crop, target_size)
     return resized_eye
