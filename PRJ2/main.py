@@ -14,6 +14,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import sys
+import csv
 import json
 import cv2
 import mediapipe as mp
@@ -141,7 +142,24 @@ fusion = FatigueFusion(
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 6. BIẾN TRẠNG THÁI (giữ nguyên logic cũ song song với logic mới)
+# 6. SESSION LOG (ghi dữ liệu để dùng cho ablation_fusion.py)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Đặt ENABLE_SESSION_LOG = True để ghi session_log.csv khi chạy.
+# Sau khi quay xong, mở CSV và điền cột "label" (0=tỉnh, 1=buồn ngủ) thủ công,
+# rồi chạy: python ablation_fusion.py --data session_log.csv --grid_search
+ENABLE_SESSION_LOG = False
+_LOG_PATH = os.path.join(_HERE, "session_log.csv")
+_log_file   = None
+_log_writer = None
+
+if ENABLE_SESSION_LOG:
+    _log_file   = open(_LOG_PATH, "w", newline="", encoding="utf-8")
+    _log_writer = csv.writer(_log_file)
+    _log_writer.writerow(["perclos", "ear_score", "mar_score", "head_score", "label"])
+    print(f"[Log] Ghi session log → {_LOG_PATH}")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 7. BIẾN TRẠNG THÁI (giữ nguyên logic cũ song song với logic mới)
 # ═══════════════════════════════════════════════════════════════════════════════
 EYE_CLOSED_COUNTER    = 0   # vẫn giữ để so sánh / fallback
 YAWN_COUNTER          = 0
@@ -374,6 +392,16 @@ while cap.isOpened():
             alarm_sound.stop()
             alarm_playing = False
 
+    # ── Session log ──────────────────────────────────────────────────────────
+    if ENABLE_SESSION_LOG and _log_writer is not None:
+        _log_writer.writerow([
+            f"{perclos.value:.4f}",
+            f"{normalize_ear(ear_val, adaptive_ear.threshold):.4f}",
+            f"{normalize_mar(mar_val, MAR_THRESHOLD):.4f}",
+            f"{head_pose.head_drowsiness_score(pitch, yaw):.4f}",
+            "",   # label: điền thủ công sau khi quay xong
+        ])
+
     # ── HUD ──────────────────────────────────────────────────────────────────
     _draw_hud(frame,
               avg_closed   = avg_closed,
@@ -399,3 +427,6 @@ face_mesh.close()
 if alarm_sound:
     alarm_sound.stop()
 pygame.mixer.quit()
+if _log_file is not None:
+    _log_file.close()
+    print(f"[Log] Đã lưu session log → {_LOG_PATH}")
