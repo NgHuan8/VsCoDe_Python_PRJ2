@@ -1,7 +1,8 @@
 # Bỏ qua 2 thư mục chứa ảnh (Dataset)
 PRJ2/data/
 Train_Landmark/data/
-
+PRJ2/ablation_results/
+PRJ2/eval_results/
 # Bỏ qua các file rác của Python (Bắt buộc)
 __pycache__/
 */__pycache__/
