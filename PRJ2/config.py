@@ -46,9 +46,9 @@ FUSION_W_HEAD    = 0.20
 ALERT_YELLOW_THRESHOLD = 30   # fatigue score 0–100
 ALERT_RED_THRESHOLD    = 60
 
-# ── Đường dẫn Landmark Model (tùy chọn) ──────────────────────────────────────
-_HERE = os.path.dirname(os.path.abspath(__file__))
-LANDMARK_MODEL_PATH = os.path.join(_HERE, "..", "Train_Landmark", "weights",
-                                   "face_landmark_68_best.keras")
-LANDMARK_IMG_SIZE   = 112
-LANDMARK_PADDING    = 0.15
+# # ── Đường dẫn Landmark Model (tùy chọn) ──────────────────────────────────────
+# _HERE = os.path.dirname(os.path.abspath(__file__))
+# LANDMARK_MODEL_PATH = os.path.join(_HERE, "..", "Train_Landmark", "weights",
+#                                    "face_landmark_68_best.keras")
+# LANDMARK_IMG_SIZE   = 112
+# LANDMARK_PADDING    = 0.15

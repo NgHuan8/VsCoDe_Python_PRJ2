@@ -82,10 +82,11 @@ class HeadPoseEstimator:
         ], dtype=np.float64)
 
         cam_matrix = self._get_camera_matrix(img_w, img_h)
+        # head_pose.py 
         success, rvec, tvec = cv2.solvePnP(
             _MODEL_POINTS_3D, image_points, cam_matrix, _DIST_COEFFS,
-            flags=cv2.SOLVEPNP_ITERATIVE
-        )
+            flags=cv2.SOLVEPNP_ITERATIVE)
+        
         if not success:
             return 0.0, 0.0, 0.0
 

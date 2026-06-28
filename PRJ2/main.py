@@ -31,10 +31,7 @@ from head_pose import HeadPoseEstimator
 from fatigue_fusion import (FatigueFusion, AlertLevel,
                              normalize_ear, normalize_mar)
 
-# ── Thêm thư mục Train_Landmark vào sys.path để import tùy chọn ──────────────
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_LANDMARK_ROOT = os.path.join(_HERE, "..", "Train_Landmark")
-sys.path.insert(0, _LANDMARK_ROOT)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 1. KHỞI TẠO ÂM THANH
@@ -83,26 +80,7 @@ def preprocess_eye(eye_img: np.ndarray) -> np.ndarray:
     return np.expand_dims(eye_img, axis=-1)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 3. NẠP MÔ HÌNH LANDMARK 68-ĐIỂM (tùy chọn)
-# ═══════════════════════════════════════════════════════════════════════════════
-USE_LANDMARK_MODEL = False
-landmark_model     = None
-
-try:
-    from webcam_demo import load_landmark_model, predict_68pts
-    from cores.utils import denormalize_landmarks
-    landmark_model     = load_landmark_model(LANDMARK_MODEL_PATH)
-    USE_LANDMARK_MODEL = landmark_model is not None
-except Exception as e:
-    print(f"[Landmark] Import thất bại ({e}). Chạy không có landmark model.")
-
-if USE_LANDMARK_MODEL:
-    print("[Landmark] Pipeline 68-pt HOẠT ĐỘNG. EAR sẽ dùng cả hai nguồn.")
-else:
-    print("[Landmark] Chạy chế độ FaceMesh-only. EAR từ 6-pt MediaPipe.")
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 4. KHỞI TẠO MEDIAPIPE FACE MESH
+# 3. KHỞI TẠO MEDIAPIPE FACE MESH
 # ═══════════════════════════════════════════════════════════════════════════════
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh    = mp_face_mesh.FaceMesh(
@@ -170,10 +148,6 @@ YAWN_FRAME_THRESHOLD  = 90
 _ear_ema        = 0.25
 _EAR_EMA_ALPHA  = 0.30
 
-# Landmark EMA smoother (giữ từ webcam_demo cũ)
-_lm_previous    = None
-_LM_EMA_ALPHA   = 0.5
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # 7. HÀM VẼ HUD
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -234,11 +208,9 @@ def _draw_hud(frame, avg_closed, ear_val, mar_val, pitch, yaw, roll,
         cv2.putText(frame, "CANH BAO: Co dau hieu met moi",
                     (10, h - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2)
 
-    # ── Badge landmark model ─────────────────────────────────────────────────
-    badge_txt = "68-pt ON" if USE_LANDMARK_MODEL else "FaceMesh EAR"
-    cv2.putText(frame, badge_txt, (w - 150, 25),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                (0, 200, 100) if USE_LANDMARK_MODEL else (180, 180, 180), 1)
+    # ── Badge chế độ EAR ─────────────────────────────────────────────────────
+    cv2.putText(frame, "FaceMesh EAR", (w - 150, 25),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (180, 180, 180), 1)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -311,34 +283,6 @@ while cap.isOpened():
         ear_right = calculate_ear(right_eye_pts)
         ear_fm    = (ear_left + ear_right) / 2.0
 
-        # ── [E] EAR từ 68-pt Landmark model (nếu có) ─────────────────────────
-        if USE_LANDMARK_MODEL:
-            # Xác định bbox khuôn mặt từ FaceMesh bounding box
-            xs = [lm.x * w_img for lm in lms]
-            ys = [lm.y * h_img for lm in lms]
-            fm_x1 = max(0, int(min(xs) - 0.15 * (max(xs) - min(xs))))
-            fm_y1 = max(0, int(min(ys) - 0.15 * (max(ys) - min(ys))))
-            fm_x2 = min(w_img, int(max(xs) + 0.15 * (max(xs) - min(xs))))
-            fm_y2 = min(h_img, int(max(ys) + 0.15 * (max(ys) - min(ys))))
-            face_crop = frame[fm_y1:fm_y2, fm_x1:fm_x2]
-
-            lm68 = predict_68pts(landmark_model, face_crop,
-                                  fm_x1, fm_y1,
-                                  fm_x2 - fm_x1, fm_y2 - fm_y1,
-                                  LANDMARK_IMG_SIZE)
-            if lm68 is not None:
-                # EMA chống rung
-                if _lm_previous is None:
-                    _lm_previous = lm68
-                else:
-                    lm68         = _LM_EMA_ALPHA * lm68 + (1 - _LM_EMA_ALPHA) * _lm_previous
-                    _lm_previous = lm68
-
-                from cores.utils import calculate_ear as lm_ear
-                ear_lm68 = (lm_ear(lm68[36:42]) + lm_ear(lm68[42:48])) / 2.0
-                # Trọng số 60/40: ưu tiên landmark model nhưng vẫn tham khảo FaceMesh
-                ear_fm   = 0.6 * ear_lm68 + 0.4 * ear_fm
-
         # EMA smoothing EAR cuối cùng
         _ear_ema = _EAR_EMA_ALPHA * ear_fm + (1 - _EAR_EMA_ALPHA) * _ear_ema
         ear_val  = _ear_ema
@@ -376,7 +320,6 @@ while cap.isOpened():
         YAWN_COUNTER       = 0
         perclos.reset()
         fusion.reset()
-        _lm_previous = None
 
     # ── Âm thanh ─────────────────────────────────────────────────────────────
     # Kích hoạt cảnh báo âm thanh khi RED (thay vì chỉ khi frame_counter >= 30)

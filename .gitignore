@@ -12,3 +12,4 @@ __pycache__/
 # Nếu chúng nhẹ dưới 50MB và bạn muốn push lên thì xóa 2 dòng dưới đi
 *.keras
 *.h5
+*.jpg

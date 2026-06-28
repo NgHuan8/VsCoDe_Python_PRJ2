@@ -89,13 +89,15 @@ class_indices = {name: i for i, name in enumerate(class_names)}
 print("Class mapping (name -> index):", class_indices)
 
 # --- Augmentation: training set only, executes on-device ---
+
+#train_cnn.py
 data_augmentation = models.Sequential(
     [
-        layers.RandomFlip("horizontal"),                  # both eyes -> safe + helpful
-        layers.RandomRotation(0.05),                      # ~ +/- 18 degrees
+        layers.RandomFlip("horizontal"),                  
+        layers.RandomRotation(0.05),          # ~ +/- 18 degrees
         layers.RandomZoom(0.10),
         layers.RandomTranslation(0.10, 0.10),
-        layers.RandomContrast(0.20),                      # varied cabin lighting
+        layers.RandomContrast(0.20),          # độ sáng/độ tương phản thay đổi 
         layers.RandomBrightness(0.20, value_range=(0, 255)),
     ],
     name="augmentation",
