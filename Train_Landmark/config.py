@@ -16,3 +16,4 @@ os.makedirs(WEIGHTS_DIR, exist_ok=True) # Tự động tạo thư mục nếu ch
 IMG_SIZE = 112
 BATCH_SIZE = 32
 EPOCHS = 100
+PADDING_RATIO = 0.15  
